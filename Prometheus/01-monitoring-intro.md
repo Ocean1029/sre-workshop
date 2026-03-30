@@ -268,7 +268,6 @@ monitoring stack
 | 通知 | Alertmanager | 把告警送到 Discord 頻道 |
 | 視覺化 | Grafana | 查詢 Prometheus 資料，顯示即時 Dashboard |
 
-> 💡 **講師提示：** 可以在白板上畫出這五步流程圖，讓學生有一個全局的概念。每完成一個後續章節就在圖上打勾，讓學生知道自己走到了哪裡。
 
 ---
 
