@@ -84,7 +84,11 @@
       - [Multi-stage Build](#multi-stage-build)
       - [建置與執行](#建置與執行)
   - [Part 4：綜合演練與延伸學習](#part-4綜合演練與延伸學習)
-    - [4.1 綜合練習](#41-綜合練習)
+    - [4.1 SDC 的短網址服務 Shlink](#41-sdc-的短網址服務-shlink)
+      - [什麼是 Shlink？](#什麼是-shlink)
+      - [Shlink 的 Docker Compose 架構](#shlink-的-docker-compose-架構)
+      - [解析 docker-compose.yaml](#解析-docker-composeyaml)
+      - [整體運作流程](#整體運作流程)
     - [4.2 常見問題排查](#42-常見問題排查)
       - [容器啟動失敗](#容器啟動失敗)
       - [容器間無法連線](#容器間無法連線)
@@ -1622,59 +1626,191 @@ curl http://localhost:8080/health
 
 ## Part 4：綜合演練與延伸學習
 
-### 4.1 綜合練習
+### 4.1 SDC 的短網址服務 Shlink
 
-**情境**：部署一個包含以下元件的微服務系統：
+前面三個 Part 我們學了容器怎麼跑、映像檔怎麼建、Compose 怎麼把多個服務串起來。現在來看一個真的跑在 SDC 基礎設施上的服務——**Shlink 短網址服務**
 
-1. **前端**：Nginx 靜態網站
-2. **後端 API**：Go HTTP 伺服器
-3. **資料庫**：PostgreSQL
-4. **快取**：Redis
+#### 什麼是 Shlink？
 
-**要求：**
+Shlink 是一個開源的短網址（URL Shortener）服務。簡單來說，就是把又臭又長的網址變短：
 
-- [ ] 所有服務以 Docker Compose 管理
-- [ ] Go API 使用多階段建置
-- [ ] PostgreSQL 資料使用 Named Volume 持久化
-- [ ] 服務間設定正確的 `depends_on` + `healthcheck`
-- [ ] 以 `.env` 檔案管理敏感資訊
-- [ ] Nginx 反向代理 Go API
-
-**提示 — Nginx 反向代理設定（nginx.conf）：**
-
-```nginx
-upstream api {
-    server api:8080;
-}
-
-server {
-    listen 80;
-
-    # Static files
-    location / {
-        root /usr/share/nginx/html;
-        index index.html;
-        try_files $uri $uri/ @api;
-    }
-
-    # Reverse proxy to Go API
-    location @api {
-        proxy_pass http://api;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Direct API routing
-    location /api/ {
-        proxy_pass http://api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+```
+原始：https://docs.google.com/spreadsheets/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ/edit#gid=0
+縮短：https://link.sdc.tw/abc123
 ```
 
+為什麼我們自己架而不用 bit.ly？因為：
+
+- **自訂網域**：用 `link.sdc.tw` 比較有辨識度
+- **數據自己掌控**：點擊次數、來源分析都在自己手上
+- **不受第三方限制**：免費方案有額度限制，自架沒有這個問題
+
+#### Shlink 的 Docker Compose 架構
+
+Shlink 整個服務由三個容器組成，架構很乾淨：
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Traefik (反向代理)                  │
+│              處理 HTTPS、憑證、路由分流                   │
+└──────────┬──────────────────────┬────────────────────┘
+           │                      │
+           ▼                      ▼
+┌─────────────────┐    ┌─────────────────────┐
+│  shlink-web-    │    │  shlink-backend     │
+│  client         │    │  (API 伺服器)        │
+│  管理介面 UI     │    │  處理短網址轉址       │
+│  port 8080      │    │  port 8080          │
+└─────────────────┘    └──────────┬──────────┘
+                                  │ shlink-net
+                                  │ (內部網路)
+                       ┌──────────▼──────────┐
+                       │  shlink-db          │
+                       │  PostgreSQL 15      │
+                       │  儲存短網址資料       │
+                       │  Volume 持久化       │
+                       └─────────────────────┘
+```
+
+三個角色分工明確：
+
+| 服務 | image | 負責什麼 |
+|------|--------|---------|
+| `shlink-db` | `postgres:15-alpine` | 資料庫，存所有短網址對應、點擊紀錄 |
+| `shlink-backend` | `shlinkio/shlink:stable` | 核心 API 伺服器，負責建立短網址、處理轉址 |
+| `shlink-web-client` | `shlinkio/shlink-web-client:stable` | 管理介面，讓你在網頁上操作短網址 |
+
+#### 解析 docker-compose.yaml
+
+以下是 SDC 實際使用的 `docker-compose.yaml`，我們一段一段來看：
+
+**1. 資料庫 — `shlink-db`**
+
+```yaml
+services:
+  shlink-db:
+    image: postgres:15-alpine
+    container_name: shlink-db
+    environment:
+      - POSTGRES_DB=shlink
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - shlink-db-data:/var/lib/postgresql/data
+    networks:
+      - shlink-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shlink"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+```
+
+- **`postgres:15-alpine`**：用 Alpine 版本的 PostgreSQL 15，映像檔比較小
+- **`environment`**：用 `${DB_USER}` 這種寫法，代表值從 `.env` 檔案讀進來。密碼絕對不會寫死在 YAML 裡面
+- **`volumes`**：用 Named Volume `shlink-db-data` 把資料庫的資料掛出來。這樣容器重啟或重建，資料都不會消失
+- **`networks: shlink-net`**：只加入內部網路，外部完全碰不到資料庫
+- **`healthcheck`**：用 `pg_isready` 指令定期檢查資料庫有沒有活著，每 10 秒查一次，連續失敗 5 次才算不健康
+
+**2. 後端 API — `shlink-backend`**
+
+```yaml
+  shlink-backend:
+    image: shlinkio/shlink:stable
+    container_name: shlink-backend
+    depends_on:
+      shlink-db:
+        condition: service_healthy
+    environment:
+      - DB_DRIVER=postgres
+      - DB_HOST=shlink-db
+      - DB_PORT=5432
+      - DB_NAME=shlink
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DEFAULT_DOMAIN=${SHLINK_DOMAIN}
+      - IS_HTTPS_ENABLED=true
+      - INITIAL_API_KEY=${SHLINK_API_KEY}
+      - GEOLITE_LICENSE_KEY=${GEOLITE_KEY}
+      - ALLOWED_ORIGINS=https://${SHLINK_WEB_HOST}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shlink-api.rule=Host(`${SHLINK_DOMAIN}`)"
+      - "traefik.http.routers.shlink-api.entrypoints=websecure"
+      - "traefik.http.routers.shlink-api.tls=true"
+      - "traefik.http.routers.shlink-api.tls.certresolver=cloudflare"
+      - "traefik.http.services.shlink-api.loadbalancer.server.port=8080"
+    networks:
+      - traefik
+      - shlink-net
+```
+
+- **`depends_on` + `condition: service_healthy`**：等資料庫的 healthcheck 通過才啟動。不是只等容器跑起來，而是等到資料庫「真的準備好了」。這就是 Part 3 學的 `depends_on` 進階用法
+- **`DB_HOST=shlink-db`**：注意這裡填的是服務名稱，不是 IP。Docker 的內部 DNS 會自動把 `shlink-db` 解析成正確的容器 IP
+- **`labels`（Traefik 設定）**：這些 label 是給 Traefik 反向代理看的。Traefik 會自動讀取這些 label 來設定路由規則和 HTTPS 憑證。你現在不需要完全理解 Traefik，只要知道它的作用是：「讓外部透過 `https://link.sdc.tw` 連到這個容器的 8080 port」
+- **雙網路 `traefik` + `shlink-net`**：backend 同時接兩個網路。`traefik` 網路讓它接收外部流量，`shlink-net` 讓它連到資料庫。這是常見的安全設計
+
+**3. 管理介面 — `shlink-web-client`**
+
+```yaml
+  shlink-web-client:
+    image: shlinkio/shlink-web-client:stable
+    container_name: shlink-web-client
+    environment:
+      - SHLINK_SERVER_URL=https://${SHLINK_DOMAIN}
+      - SHLINK_SERVER_API_KEY=${SHLINK_API_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shlink-web.rule=Host(`${SHLINK_WEB_HOST}`)"
+      - "traefik.http.routers.shlink-web.entrypoints=websecure"
+      - "traefik.http.routers.shlink-web.tls=true"
+      - "traefik.http.routers.shlink-web.tls.certresolver=cloudflare"
+      - "traefik.http.services.shlink-web.loadbalancer.server.port=8080"
+    networks:
+      - traefik
+```
+
+重點拆解：
+
+- **只連 `traefik` 網路**：Web Client 不需要直接碰資料庫，它透過 `SHLINK_SERVER_URL` 呼叫 backend 的 API 來操作資料
+- **`SHLINK_SERVER_API_KEY`**：Web Client 用 API Key 跟 backend 溝通，這也是從 `.env` 讀取的
+
+**4. Network 與 Volume**
+
+```yaml
+networks:
+  traefik:
+    external: true
+  shlink-net:
+    internal: true
+
+volumes:
+  shlink-db-data:
+```
+
+重點拆解：
+
+- **`traefik: external: true`**：這個網路不是 Shlink 自己建的，是整個伺服器共用的。其他服務也掛在同一個 Traefik 網路上
+- **`shlink-net: internal: true`**：標記為 `internal`，代表這個網路**沒有對外連線能力**。只有 `shlink-db` 和 `shlink-backend` 在裡面，資料庫完全隔離，外部無法直接存取
+- **`shlink-db-data`**：Named Volume，PostgreSQL 的資料持久化就靠它
+
+#### 整體運作流程
+
+當有人點了 `https://link.sdc.tw/abc123`，會發生什麼事？
+
+```
+1. 使用者點擊 https://link.sdc.tw/abc123
+         │
+2. Traefik 收到請求，根據 Host 規則轉給 shlink-backend
+         │
+3. shlink-backend 查詢 shlink-db：「abc123 對應到哪個網址？」
+         │
+4. shlink-db 回傳原始網址
+         │
+5. shlink-backend 回應 HTTP 302 重新導向到原始網址
+         │
+6. 使用者的瀏覽器跳轉到目標網站
+```
 ---
 
 ### 4.2 常見問題排查
