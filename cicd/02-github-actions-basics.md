@@ -142,7 +142,9 @@ steps:
 
 ### 5. Action（動作）
 
-**Action** 是一個 **可重用的步驟**，可以想像成是 workflow 中的「積木」。
+**Action** 是一個 **可重用的步驟**，別人已經寫好的功能，你拿來直接用就好。
+
+舉例來說，Ocean 每次寫 workflow 都需要先把程式碼 checkout 下來，再安裝 Go，再跑 lint。這些步驟不用自己從頭寫，直接用社群提供的 Action 就搞定了。Snow 跟 Ocean 說：「你不用重新發明輪子，去 Marketplace 找現成的 Action 來組合就好。」
 
 - 來源：
   - **GitHub Marketplace**：社群提供的現成 Actions（如 `actions/checkout`）
@@ -150,13 +152,6 @@ steps:
 - 引用格式：`{owner}/{repo}@{version}`
   - 例如：`actions/checkout@v4`
   - 建議固定版本（用 `@v4` 而非 `@main`），避免未預期的變更
-
-<details>
-<summary>💡 講師提示</summary>
-
-> 可以用「樂高積木」的比喻，每個 Action 都是一塊積木，你可以把不同的積木組合起來，拼出你要的 pipeline。
-
-</details>
 
 ### 6. Runner（執行器）
 

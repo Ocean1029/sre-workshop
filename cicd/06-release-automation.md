@@ -81,12 +81,7 @@ v 1  .  2  .  3
 | 修正 `/health` 回傳格式 bug | `v1.1.0` → `v1.1.1` | 修正 bug |
 | 將 `/version` 的 JSON 結構改變 | `v1.1.1` → `v2.0.0` | 原本的使用者程式碼會壞掉，是 breaking change |
 
-<details>
-<summary>💡 講師提示</summary>
-
-> 可以用「手機 App 更新」來比喻。PATCH 像是修 bug 的小更新、MINOR 像是新增功能的更新、MAJOR 像是整個 UI 大改版到你找不到原本功能的更新。
-
-</details>
+用 Andrew 的專案來舉例：Ocean 修了一個 `/health` endpoint 的小 bug，這是 PATCH。Andrew 加了一個全新的 `/users` endpoint，這是 MINOR。如果 Snow 決定把整個 API 的回傳格式從 JSON 陣列改成分頁物件，導致所有呼叫端都要改，這就是 MAJOR。
 
 ---
 
