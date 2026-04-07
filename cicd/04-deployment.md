@@ -288,7 +288,7 @@ jobs:
         │ PR 合併到 main
         ▼
 ┌───────────────────────────────────────────────────────┐
-│                  CD Pipeline (ch04)                    │
+│                  CD Pipeline (ch04)                   │
 │                                                       │
 │  ┌──────────┐    ┌──────────┐    ┌──────────────┐    │
 │  │ Deploy   │───▶│ Smoke    │───▶│ Deploy       │    │
@@ -299,6 +299,34 @@ jobs:
 ```
 
 從寫程式碼到部署上線，每個環節都有自動化的品質把關。這就是 CI/CD 的力量。
+
+## 結語
+
+四章走下來，你做了這些事：
+
+- **第二章**：寫了第一個 workflow，push 上去看它跑，認識 workflow / job / step / runner 的關係，也刻意製造一次失敗看 debug 流程
+- **第三章**：把 lint、test、build 三個 job 串成真正的 Go CI。`lint` 和 `test` 透過 `needs` 平行執行、`build` 等兩者都過才啟動；`golangci-lint` 守程式碼品質，`go test -race -coverprofile` 抓 race condition 並收 coverage，`upload-artifact` 把產物交給下一個 job。同時也看到 `on: pull_request` 怎麼在 merge 前先攔一次
+- **第四章**：把建好的東西部署到 Fly.io，用 GitHub Environments 管 secrets，設計 staging 自動部署加 smoke test、production 手動核准的兩階段流程
+
+回頭看第一章 Ocean 和 Andrew 那些抱怨：
+
+| 原本的痛點 | 現在怎麼解 |
+|-----------|-----------|
+| 手動測試每次都花好久 | push 後 CI 自動跑完 lint + test + build |
+| 合併之後才發現壞掉 | PR 階段就先跑一次 CI，壞的改不了合進來 |
+| 部署又忘了步驟 | `flyctl deploy` 一個指令，前置步驟寫進 workflow 裡跑 |
+| 誰都可以亂部署 production | Environment protection 強制手動核准 |
+| API key 散落在各處 | 統一放進 GitHub Secrets，log 自動遮蔽 |
+
+沒講到的東西還很多，Release 自動化、image 掃描、GitOps、監控告警之類的，工作上真的碰到再查就好。
+
+### 延伸資源
+
+- [GitHub Actions 官方文件](https://docs.github.com/en/actions)
+- [Awesome Actions](https://github.com/sdras/awesome-actions)，社群整理的 Actions 清單
+- [Fly.io Docs](https://fly.io/docs/)
+- [The Twelve-Factor App](https://12factor.net/)
+- [Google SRE Book](https://sre.google/sre-book/table-of-contents/)
 
 
 [← 上一章：Go 專案 CI Pipeline](03-go-ci-pipeline.md) ｜ [回到目錄 →](README.md)
