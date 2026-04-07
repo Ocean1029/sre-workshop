@@ -2,7 +2,7 @@
 
 ## 課程簡介
 
-2 小時的 GitHub Actions 實戰教學課程，從 CI/CD 基礎概念出發，一步步帶你認識 GitHub Actions 的核心觀念與實務操作。課程涵蓋 workflow 撰寫、Go 專案的 CI pipeline 建置，以及部署到雲端平台等主題。透過動手實作，你將具備在真實專案中導入 CI/CD 的能力。
+兩小時的 GitHub Actions 實戰課程，從 CI/CD 基礎概念出發，動手寫第一個 workflow，再為一個真正的 Go 專案建立完整的 CI pipeline。完成後你會具備在實際專案中導入 CI/CD 的基本能力。
 
 ## 適用對象
 
@@ -14,57 +14,38 @@
 
 - [ ] **GitHub 帳號** — 如果還沒有，請到 [github.com](https://github.com) 註冊
 - [ ] **安裝 Git** — 確認終端機可以執行 `git --version`
-- [ ] **安裝 Go 1.24+** — 確認終端機可以執行 `go version`，版本需為 1.24 以上
+- [ ] **安裝 Go 1.24+** — 確認終端機可以執行 `go version`
 - [ ] **安裝 Docker** — 確認終端機可以執行 `docker --version`
 - [ ] **程式編輯器** — 推薦使用 [VS Code](https://code.visualstudio.com/)，並安裝 YAML 擴充套件
 
 ## 課程大綱與時間分配
 
-| 章節 | 主題 | 時間 |
-|------|------|------|
-| 01 | CI/CD 概念介紹 | 10 分鐘 |
-| 02 | GitHub Actions 基礎 | 30 分鐘 |
-| 03 | Go 專案 CI Pipeline | 25 分鐘 |
-| 04 | 部署到雲端平台 | 15 分鐘 |
-| -- | 總結與 Q&A | 10 分鐘 |
+| 時段 | 章節 | 內容 | 時間 |
+|------|------|------|------|
+| 0:00–0:05 | — | 開場、確認事前準備 | 5 分鐘 |
+| 0:05–0:20 | **01** | CI/CD 概念介紹 | 15 分鐘 |
+| 0:20–0:55 | **02** | GitHub Actions 基礎（hello.yml + 介面 + 結構元素） | 35 分鐘 |
+| 0:55–1:10 | **02** | 手動觸發 + Pipeline 失敗 debug | 15 分鐘 |
+| 1:10–1:25 | **02 練習** | 自訂 hello.yml | 15 分鐘 |
+| 1:25–2:00 | **03** | Go 專案 CI Pipeline 講解 | 35 分鐘 |
 
 > **總計：2 小時（120 分鐘）**
+>
+> 03 練習與 04 部署章節為課後延伸內容，建議學生回家自行完成。
 
-### 01 — CI/CD 概念介紹（10 分鐘）
+### 各章節內容
 
-- 什麼是 CI/CD？
-- 為什麼需要自動化？
-- 常見 CI/CD 工具比較
+**01 — CI/CD 概念介紹**
+為什麼需要 CI/CD、它解決什麼問題、CI 和 CD 各自在做什麼、SDC 實際怎麼用。
 
-### 02 — GitHub Actions 基礎（30 分鐘）
+**02 — GitHub Actions 基礎**
+動手寫第一個 `hello.yml`、push 後觀察 GitHub Actions 介面、認識 workflow 的五個結構元素（Workflow / Event / Job / Step / Runner）、`uses` 引用 Action、`${{ }}` 讀 context、手動觸發、刻意製造失敗練習 debug。
 
-- 動手建立第一個 Hello World workflow
-- GitHub Actions 介面導覽
-- Workflow / Job / Step / Action / Runner 核心概念
-- YAML 語法與 workflow 檔案結構
-- 觸發條件（Events）與執行環境（Runners）
-- **練習 1**：基礎 workflow 實作
+**03 — Go 專案 CI Pipeline**
+為一個 Go HTTP API 伺服器建立完整的 CI workflow：lint（golangci-lint）、test（含覆蓋率）、build，學會用 `needs` 控制 job 依賴關係，以及 `actions/upload-artifact` 在 job 之間傳遞檔案。最後介紹 PR 觸發的 CI 與相關的 permissions、fork 安全限制。
 
-### 03 — Go 專案 CI Pipeline（25 分鐘）
-
-- Lint（程式碼風格檢查）
-- Test（自動化測試）
-- Build（編譯建置）
-- Coverage（測試覆蓋率）
-- PR 觸發的 CI
-- **練習 2**：完整 CI pipeline 實作
-
-### 04 — 部署到雲端平台（15 分鐘）
-
-- CD 流程設計
-- 部署 workflow 撰寫
-- 環境變數與 Secrets 管理
-
-### 總結與 Q&A（10 分鐘）
-
-- 課程重點回顧
-- 延伸學習資源
-- 問答時間
+**04 — 部署到雲端平台（延伸）**
+GitHub Environments 與 Secrets 的概念，以及實戰部署到 Fly.io 的範例。本章為課後延伸閱讀。
 
 ## 教材結構
 
@@ -75,28 +56,27 @@ cicd/
 ├── 01-cicd-intro.md                   # CI/CD 概念介紹
 ├── 02-github-actions-basics.md        # GitHub Actions 基礎（含實作）
 ├── 03-go-ci-pipeline.md               # Go 專案 CI Pipeline
-├── 04-deployment.md                   # 部署到雲端平台
-├── assets/                            # 圖表資源
-│   └── git-flow-diagram.png           # Git Flow 分支模型示意圖
-├── examples/                          # 範例程式碼
-│   ├── .github/
-│   │   └── workflows/                 # 範例 workflow 檔案
-│   │       ├── hello.yml              # Hello World workflow
-│   │       ├── ci.yml                 # Go CI pipeline
-│   │       ├── pr-check.yml           # PR 檢查自動化
-│   │       └── cd.yml                 # 部署到 Fly.io
-│   └── sample-app/                    # 範例 Go 應用程式
-│       ├── main.go                    # 主程式進入點
-│       ├── handler.go                 # HTTP handler
-│       ├── handler_test.go            # 測試檔案
-│       ├── go.mod                     # Go module 定義
-│       ├── Dockerfile                 # Docker 映像檔定義
-│       └── .golangci.yml              # golangci-lint 設定
-└── exercises/                         # 練習題
-    ├── 01-basics.md                   # 章節 02 練習
-    └── 02-ci-pipeline.md              # 章節 03 練習
+├── 04-deployment.md                   # 部署到雲端平台（延伸）
+├── assets/                            # 截圖與圖表
+├── examples/
+│   ├── .github/workflows/
+│   │   ├── hello.yml                  # 02 章 demo workflow
+│   │   └── repo-info.yml              # 02 章失敗範例
+│   └── sample-app/                    # Go HTTP API 範例專案
+│       ├── main.go
+│       ├── handler.go
+│       ├── handler_test.go
+│       ├── go.mod
+│       ├── Dockerfile
+│       ├── .golangci.yml
+│       └── .github/workflows/
+│           ├── ci.yml                 # 03 章 CI pipeline
+│           └── cd.yml                 # 04 章部署到 Fly.io
+└── exercises/
+    ├── 01-basics.md                   # 02 章練習
+    └── 02-ci-pipeline.md              # 03 章練習
 ```
 
 ## 範例專案說明
 
-`examples/sample-app` 是一個簡單的 **Go HTTP API 伺服器**，提供基本的 RESTful API 端點。這個專案會在整個工作坊中作為示範與練習的基礎，你將學會如何為它建立完整的 CI/CD pipeline，從自動化測試、程式碼品質檢查、Docker 映像檔建置，到自動部署。
+`examples/sample-app` 是一個簡單的 **Go HTTP API 伺服器**，提供基本的 RESTful endpoint。這個專案會在 03、04 章作為示範與練習的基礎，你將學會如何為它建立完整的 CI/CD pipeline，從自動化測試、程式碼風格檢查、Docker 映像檔建置，到自動部署到雲端平台。
