@@ -74,13 +74,23 @@ cicd/examples/sample-app/
 請在你的專案中建立 `.github/workflows/ci.yml`：
 
 ```yaml
-name: Go CI
+name: Sample App CI
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'cicd/examples/sample-app/**'
+      - '.github/workflows/sample-app-ci.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'cicd/examples/sample-app/**'
+      - '.github/workflows/sample-app-ci.yml'
+
+defaults:
+  run:
+    working-directory: cicd/examples/sample-app
 
 jobs:
   lint:
@@ -91,10 +101,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
+          cache-dependency-path: cicd/examples/sample-app/go.sum
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          working-directory: cicd/examples/sample-app
 
   test:
     name: Test
@@ -104,6 +116,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
+          cache-dependency-path: cicd/examples/sample-app/go.sum
+      - name: Verify dependencies
+        run: go mod verify
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
       - name: Show coverage
@@ -112,7 +127,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.out
+          path: cicd/examples/sample-app/coverage.out
 
   build:
     name: Build
@@ -123,18 +138,17 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24'
+          cache-dependency-path: cicd/examples/sample-app/go.sum
       - name: Build binary
         run: go build -o bin/app .
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: app-binary
-          path: bin/app
+          path: cicd/examples/sample-app/bin/app
 ```
 
-> 完整檔案也可以在 `cicd/examples/sample-app/.github/workflows/ci.yml` 找到，直接複製過去即可。
->
-> 小提醒：因為 sample-app 是這個 workshop repo 裡的一個子目錄，GitHub Actions 不會直接執行子目錄底下的 workflow。實際在 workshop repo 本身跑的是 `.github/workflows/sample-app-ci.yml`，內容和這裡幾乎一樣，但多了 `paths` 過濾（只在 `cicd/examples/sample-app/**` 變動時觸發）和 `defaults.run.working-directory`（讓指令跑在 sample-app 子目錄裡）。對你自己的專案來說用不到這兩項額外設定，照本章範例貼過去就好。
+> 這份 workflow 實際放在 workshop repo 的 `.github/workflows/sample-app-ci.yml`（也同步一份在 `cicd/examples/sample-app/.github/workflows/ci.yml` 供參考）。因為 sample-app 是這個 workshop repo 底下的一個子目錄，裡面用到了幾個「子目錄專案」才需要的特殊設定：`paths` 過濾讓 workflow 只在 `cicd/examples/sample-app/**` 變動時觸發、`defaults.run.working-directory` 讓所有 `run:` 指令都跑在 sample-app 子目錄裡、`cache-dependency-path` 指向子目錄的 `go.sum`、artifact 的 `path:` 也要用 repo 相對路徑（因為 `upload-artifact` 不受 `working-directory` 影響）。如果你自己的 Go 專案 repo 就是以 Go 程式碼為根目錄，這些子目錄相關設定都可以拿掉，會更精簡。
 
 ## 逐段解說
 
