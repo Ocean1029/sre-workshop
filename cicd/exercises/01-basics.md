@@ -15,18 +15,7 @@
 
 ### 要求
 
-在原本的 `hello.yml` 裡（包含 `Say Hello`、`Show System Info`、`Show GitHub Context` 三個 step），**新增**以下兩個 step：
-
-1. 使用 `actions/checkout@v4` 把 repo 的程式碼 checkout 下來，然後用 `ls -la` 列出工作目錄的檔案
-2. 顯示目前的 Git 資訊（分支名稱、最近一次 commit 的作者和訊息）
-
-### 提示
-
-- 要能看到 repository 裡的檔案，**必須先使用 `actions/checkout@v4`** 來 checkout 程式碼。如果沒有 checkout，Runner 上的工作目錄是空的，後面的 `git` 指令也不會有 `.git` 資料夾可以讀。
-- `uses` 的寫法可以回頭看 [02 章 Step 段落](../02-github-actions-basics.md#4-step) 的範例。
-- Git 資訊可以用 `git log -1` 來查看最近一次 commit。
-
-### 答案
+回顧一下第 02 章建立的 `hello.yml`：
 
 ```yaml
 name: Hello GitHub Actions
@@ -58,7 +47,31 @@ jobs:
           echo "Commit SHA: ${{ github.sha }}"
           echo "Actor: ${{ github.actor }}"
           echo "Event: ${{ github.event_name }}"
+```
 
+請在這份 workflow 的最後**新增**兩個 step：
+
+1. 使用 `actions/checkout@v4` 把 repo 的程式碼 checkout 下來，然後用 `ls -la` 列出工作目錄的檔案
+2. 印出目前的 git 分支名稱和最近一次 commit 的訊息
+
+### 提示
+
+- 要能看到 repository 裡的檔案，**必須先使用 `actions/checkout@v4`** 來 checkout 程式碼。如果沒有 checkout，Runner 上的工作目錄是空的，後面的 `git` 指令也不會有 `.git` 資料夾可以讀。
+- `uses` 的寫法可以回頭看 [02 章 Step 段落](../02-github-actions-basics.md#4-step) 的範例。
+- Git 分支可以用 `git branch --show-current`，最近一次 commit 訊息可以用 `git log -1 --pretty=format:%s`。
+
+### 預期結果
+
+push 之後到 Actions 頁面，你應該會看到 `List Files in Working Directory` 列出 repo 根目錄的檔案、`Show Git Info` 印出當前分支和 commit 訊息：
+
+![練習一執行結果](../assets/exercise-01-result.png)
+
+<details>
+<summary>點擊查看答案</summary>
+
+在原本的 `hello.yml` 後面加上這三個 step：
+
+```yaml
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -68,9 +81,14 @@ jobs:
       - name: Show Git Info
         run: |
           echo "Branch: $(git branch --show-current)"
-          git log -1 --pretty=format:"Author: %an%nMessage: %s"
+          echo "Message: $(git log -1 --pretty=format:%s)"
 ```
 
-`git log -1` 的 `--pretty=format:` 可以自訂輸出格式，`%an` 是作者名稱、`%s` 是 commit 訊息、`%n` 代表換行。想印更多資訊可以加 `%H`（完整 SHA）、`%ad`（日期）等。
+**重點說明：**
+
+- `actions/checkout@v4` 必須放在 `ls -la` 和 `git log` 之前，否則工作目錄是空的，也沒有 `.git` 資料夾。
+- `git log -1` 的 `--pretty=format:` 可以自訂輸出格式，`%s` 是 commit 訊息。想印更多資訊可以加 `%an`（作者名稱）、`%H`（完整 SHA）、`%ad`（日期）等。
+
+</details>
 
 [回到教材目錄 →](../README.md)
