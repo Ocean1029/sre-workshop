@@ -6,8 +6,7 @@
 
 - [02 — Prometheus 核心概念](#02--prometheus-核心概念)
   - [目錄](#目錄)
-  - [學習目標](#學習目標)
-  - [Prometheus 是什麼？](#prometheus-是什麼)
+  - [Prometheus 是什麼？ (pruh·mee·thee·uhs)](#prometheus-是什麼-pruhmeetheeuhs)
   - [Pull-based vs. Push-based](#pull-based-vs-push-based)
     - [Pull 的優勢](#pull-的優勢)
   - [系統架構](#系統架構)
@@ -33,38 +32,26 @@
     - [Range Vector — 時間範圍查詢](#range-vector--時間範圍查詢)
     - [常用函數](#常用函數)
     - [實用查詢範例](#實用查詢範例)
-  - [Blackbox vs. Whitebox Monitoring](#blackbox-vs-whitebox-monitoring)
   - [Metrics 的傳輸格式](#metrics-的傳輸格式)
   - [小結](#小結)
 
 ---
 
-## 學習目標
-- Prometheus 的 pull-based 架構與優勢
-- 理解 Prometheus 系統架構中各元件的角色
-- 區分 Counter、Gauge、Histogram、Summary 四種 metric 類型
-- 使用 Labels 來組織和篩選 metrics
-- 撰寫基本的 PromQL 查詢
-- 區分 Blackbox 和 Whitebox monitoring
-
----
-
-## Prometheus 是什麼？
+## Prometheus 是什麼？ (pruh·mee·thee·uhs)
 
 **Prometheus** 是一套開源的 monitoring 和 alerting 工具，由 SoundCloud 於 2012 年開發，2016 年成為 CNCF（Cloud Native Computing Foundation）的第二個Project（僅次於 Kubernetes）。
 
 Prometheus 的兩大特色：
 
 1. **Pull-based 架構** — 主動去服務端拉取 metrics，而非被動等待
-2. **內建 Time Series 資料庫（TSDB）** — 高效儲存時間序列資料
-
-> Prometheus + Kubernetes 是Cloud Native生態系中最常見的 monitoring 組合
+2. **內建 Time Series 資料庫（TSDB）** — 有效儲存時間序列資料
 
 ---
 
 ## Pull-based vs. Push-based
 
-大多數的 monitoring 系統是「被動」的——等服務主動把資料 push 過來。Prometheus 則是「主動出擊」——它會依照固定的時間間隔，主動去各個服務 pull（scrape）metrics。
+大多數的 monitoring 系統是「被動」的——等服務主動把資料 push 過來。Prometheus 則是「主動出擊」
+它會依照固定的時間間隔，主動去各個服務 pull（scrape）metrics。
 
 ```
 Push-based（傳統做法）:
@@ -87,8 +74,9 @@ Pull-based（Prometheus）:
 | **流量控制** | Prometheus 決定 scrape 頻率，不會被大量 push 淹沒 | 大量服務同時 push 可能造成 monitoring 系統過載 |
 | **除錯方便** | 可以直接瀏覽器打開服務的 `/metrics` endpoint 查看 | 資料推送後才看得到 |
 
-> 「醫生巡房」和「病人按鈴」的差異
-> Pull-based 就像醫生每 30 分鐘固定巡房一次（主動檢查），Push-based 就像等病人按鈴才去看（被動等待）。醫生巡房的好處是即使病人昏迷了（服務掛了），醫生走到病房就知道出問題了
+> Pull-based 就像醫生每 30 分鐘固定巡房一次（主動檢查）
+> Push-based 就像等病人按鈴才去看（被動等待）
+> 醫生巡房的好處是即使病人昏迷了（服務掛了），醫生走到病房就知道出問題了
 
 ---
 
@@ -102,7 +90,7 @@ Pull-based（Prometheus）:
 |------|---------|------|
 | **Prometheus** | 蒐集 metrics、儲存 time series、評估 alert rules | 醫院的監測儀器 |
 | **Exporter** | 把服務的內部指標轉換成 Prometheus 可讀的格式 | 量體溫的溫度計 |
-| **Alertmanager** | 接收 alerts，分組、去重複、路由通知 | 醫院的廣播叫號系統 |
+| **Alertmanager** | 接收 alerts，分組、去重複、Route通知 | 醫院的廣播叫號系統 |
 | **Grafana** | 查詢 Prometheus 資料，顯示視覺化 Dashboard | 病房裡的生理數值螢幕 |
 
 ### 架構圖
@@ -246,7 +234,7 @@ http_request_duration_seconds{quantile="0.99"} = 1.2    # P99 是 1.2s
 
 ### 為什麼需要 Labels？
 
-想像一下，如果沒有 Labels，你只能知道「總共有 15234 個 HTTP 請求」。但有了 Labels，你可以回答更細緻的問題：
+如果沒有 Labels，你只能知道「總共有 15234 個 HTTP 請求」。但有了 Labels，你可以回答更細緻的問題：
 
 ```
 # 沒有 labels — 只有一個數字
@@ -270,10 +258,10 @@ Labels 讓你可以：
 |-------|------|--------|
 | `service` | 哪個服務 | `grafana`, `api`, `prometheus` |
 | `env` | 哪個環境 | `prod`, `staging`, `dev` |
-| `instance` | 哪個實例 | `10.0.1.5:8080` |
-| `method` | HTTP 方法 | `GET`, `POST`, `PUT` |
-| `status` | HTTP 狀態碼 | `200`, `404`, `500` |
-| `severity` | Alert 等級 | `critical`, `warning`, `info` |
+| `instance` | 哪個instance | `10.0.1.5:8080` |
+| `method` | HTTP method | `GET`, `POST`, `PUT` |
+| `status` | HTTP stautus | `200`, `404`, `500` |
+| `severity` | Alert 嚴重度 | `critical`, `warning`, `info` |
 
 ### Label 的注意事項
 
@@ -372,28 +360,6 @@ rate(http_requests_total[5m])
 ```
 
 > 💡 **講師提示：** PromQL 不需要一次全學會。先記住 `up`（服務有沒有在跑）、`rate()`（速率計算）這兩個最常用的就好。後續章節在實作時會帶著學生練習更多查詢。
-
----
-
-## Blackbox vs. Whitebox Monitoring
-
-Monitoring 可以從兩個不同的角度進行：
-
-|  | Blackbox Monitoring | Whitebox Monitoring |
-|--|---------------------|---------------------|
-| **視角** | 從外部（使用者的角度） | 從內部（服務自己的角度） |
-| **檢查的問題** | 「我能不能連到這個服務？」 | 「這個服務內部表現得怎麼樣？」 |
-| **範例** | HTTP status code、response time、SSL 憑證 | CPU、記憶體、request queue 深度 |
-| **工具** | Blackbox Exporter | Node Exporter、應用程式本身的 metrics |
-| **需要改程式碼嗎？** | 不需要 | 需要（要在程式裡 expose `/metrics` endpoint） |
-| **類比** | 護士去確認病人有沒有回應 | 醫生讀取病人身上的感測器數據 |
-
-兩者是互補的：
-
-- **Blackbox** 告訴你「使用者看到的是什麼」→ 服務到底能不能用
-- **Whitebox** 告訴你「為什麼會這樣」→ 幫你找到根本原因
-
-> 💡 **講師提示：** 好的 monitoring 系統兩者都要有。Blackbox 是你的第一道防線（最快知道服務掛了），Whitebox 是你的除錯工具（找出為什麼掛了）。
 
 ---
 

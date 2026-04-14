@@ -6,30 +6,44 @@
 
 ## 目錄
 
-- [學習目標](#學習目標)
-- [事前準備](#事前準備)
-- [Step 1：建立專案結構](#step-1建立專案結構)
-- [Step 2：建立 Prometheus 設定檔](#step-2建立-prometheus-設定檔)
-- [Step 3：建立 Docker Compose 檔案](#step-3建立-docker-compose-檔案)
-- [Step 4：啟動 Prometheus](#step-4啟動-prometheus)
-- [Step 5：探索 Prometheus Web UI](#step-5探索-prometheus-web-ui)
-- [Step 6：加入 Node Exporter](#step-6加入-node-exporter)
-- [Step 7：用 PromQL 查詢 Node Exporter 的 Metrics](#step-7用-promql-查詢-node-exporter-的-metrics)
-- [設定檔逐行解說](#設定檔逐行解說)
-- [常見問題排解](#常見問題排解)
-- [小結與練習題](#小結與練習題)
+- [03 — 動手做：部署 Prometheus](#03--動手做部署-prometheus)
+  - [目錄](#目錄)
+  - [事前準備](#事前準備)
+    - [確認工具已安裝](#確認工具已安裝)
+  - [](#)
+  - [Step 1：/examples 檔案結構](#step-1examples-檔案結構)
+  - [Step 2：建立 Prometheus 設定檔](#step-2建立-prometheus-設定檔)
+    - [為什麼要監測 Prometheus 自己？](#為什麼要監測-prometheus-自己)
+  - [Step 3：建立 Docker Compose 檔案](#step-3建立-docker-compose-檔案)
+    - [逐行解說](#逐行解說)
+  - [Step 4：啟動 Prometheus](#step-4啟動-prometheus)
+  - [Step 5：探索 Prometheus Web UI](#step-5探索-prometheus-web-ui)
+    - [Targets 頁面](#targets-頁面)
+    - [Graph 頁面](#graph-頁面)
+    - [直接查看 /metrics endpoint](#直接查看-metrics-endpoint)
+  - [Step 6：加入 Node Exporter](#step-6加入-node-exporter)
+    - [更新 Docker Compose](#更新-docker-compose)
+    - [更新 Prometheus 設定](#更新-prometheus-設定)
+    - [重啟服務](#重啟服務)
+    - [驗證 Node Exporter](#驗證-node-exporter)
+  - [Step 7：用 PromQL 查詢 Node Exporter 的 Metrics](#step-7用-promql-查詢-node-exporter-的-metrics)
+    - [查看所有 targets 是否正常](#查看所有-targets-是否正常)
+    - [記憶體使用率（百分比）](#記憶體使用率百分比)
+    - [CPU 使用率（百分比）](#cpu-使用率百分比)
+    - [硬碟使用率（百分比）](#硬碟使用率百分比)
+    - [系統開機時間](#系統開機時間)
+  - [設定檔逐行解說](#設定檔逐行解說)
+    - [prometheus.yml 完整解說](#prometheusyml-完整解說)
+    - [關鍵概念](#關鍵概念)
+  - [常見問題排解](#常見問題排解)
+    - [1. Port 被占用](#1-port-被占用)
+    - [2. Prometheus 設定檔語法錯誤](#2-prometheus-設定檔語法錯誤)
+    - [3. Node Exporter 在 macOS 上 metrics 很少](#3-node-exporter-在-macos-上-metrics-很少)
+    - [4. Target 顯示 DOWN](#4-target-顯示-down)
+  - [小結與練習題](#小結與練習題)
+    - [本章重點回顧](#本章重點回顧)
+    - [練習題](#練習題)
 
----
-
-## 學習目標
-
-完成本章節後，你將能夠：
-
-- 從零開始用 Docker Compose 部署 Prometheus
-- 撰寫 Prometheus 的基本設定檔（`prometheus.yml`）
-- 在 Prometheus Web UI 中查看 Targets 和執行 PromQL 查詢
-- 部署 Node Exporter 來蒐集主機的硬體 metrics
-- 理解 scrape job 的設定方式
 
 ---
 
@@ -44,35 +58,21 @@ docker --version          # Docker version 27.x.x 或以上
 docker compose version    # Docker Compose version v2.x.x 或以上
 ```
 
-### 建立練習用的 Repository
+下載 [Prometheus Formatter Extension](https://chromewebstore.google.com/detail/jhfbpphccndhifmpfbnpobpclhedckbb?utm_source=item-share-cb)
 
-如果你還沒有 clone 這個 workshop 的 repo，請先 clone：
-
-```bash
-git clone https://github.com/<org>/sre-workshop.git
-cd sre-workshop
-```
-
-> 💡 **講師提示：** 確認所有學生都已完成 Docker workshop 並且 Docker 可正常使用。如果有學生的 Docker 還沒裝好，請先協助解決。
-
+![alt](./assets/metricspage.png)
+![alt text](./assets/formatter.png)
 ---
 
-## Step 1：建立專案結構
+## Step 1：/examples 檔案結構
+``
 
-我們要從零開始建立一個 monitoring stack。先建立所需的目錄結構：
-
-```bash
-# 在 sre-workshop 目錄下建立 Prometheus 實作目錄
-mkdir -p Prometheus/examples/monitoring-stack/config
-```
-
-完成後的目錄結構會像這樣：
 
 ```
 Prometheus/examples/monitoring-stack/
-├── docker-compose.yml          # 容器定義（待建立）
+├── docker-compose.yml          
 └── config/
-    └── prometheus.yml          # Prometheus 設定（待建立）
+    └── prometheus.yml          
 ```
 
 ---
