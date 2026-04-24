@@ -4,12 +4,16 @@
 
 A 25-minute capstone that ties together Docker, CI/CD, and Prometheus. You'll deploy a service via GitHub Actions to the SDC machine, expose metrics for Prometheus, and trigger a Discord alert when the service crashes.
 
-**What the repo provides:**
+> **The exercise lives in a separate repo:** [Ocean1029/sre-workshop-capstone](https://github.com/Ocean1029/sre-workshop-capstone).
+>
+> That repo is the one you clone, edit, and push. This directory only contains the briefing for instructors and anyone reading the main workshop repo.
+
+**What the capstone repo provides:**
 
 - Service source code and Dockerfile
 - Most of the GitHub Actions workflow (CI complete, CD partially filled in)
-- Prometheus scrape config
-- Alert rule
+- Prometheus scrape config and alert rule
+- `docker-compose.yml` for the Part 1 local stack
 
 **What's already running on the SDC machine:**
 
@@ -41,16 +45,12 @@ Target architecture: repo → GitHub Actions → self-hosted runner → `docker 
 3. Hit `/crash` on the deployed service.
 4. Wait for the alert to fire; check Discord for the notification.
 
-## Repo Layout (skeleton)
+## Getting Started
 
-```
-final-exercise/
-├── README.md               # This file
-├── README.zh-TW.md         # Chinese version
-├── app/                    # Service source + Dockerfile (TBD)
-├── .github/workflows/      # CI complete, CD skeleton (TBD)
-├── prometheus/             # Scrape config + alert rule (TBD)
-└── docker-compose.yml      # Local stack: app + Prometheus (TBD)
+```bash
+git clone https://github.com/Ocean1029/sre-workshop-capstone.git
+cd sre-workshop-capstone
+docker compose up --build
 ```
 
-Content files land before the workshop date.
+Full step-by-step instructions are in the capstone repo's [README](https://github.com/Ocean1029/sre-workshop-capstone#flow).
