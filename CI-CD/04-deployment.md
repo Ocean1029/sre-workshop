@@ -97,7 +97,7 @@ CD 用 self-hosted 的最大理由是「**部署目標就在 runner 同一台（
 
 ### 部署 Workflow
 
-請在你的專案中建立 `.github/workflows/cd.yml`：
+下面的 CD workflow 沒辦法在本機執行成功，這節只會觀察這個 workflow 的結構：
 
 ```yaml
 name: Build and Deploy
