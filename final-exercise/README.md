@@ -54,3 +54,5 @@ docker compose up --build
 ```
 
 Full step-by-step instructions are in the capstone repo's [README](https://github.com/Ocean1029/sre-workshop-capstone#flow).
+## Thanks for Attending
+![alt](./assets/qrcode.svg)
