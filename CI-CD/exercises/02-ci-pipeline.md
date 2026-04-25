@@ -25,13 +25,11 @@
 
 ### 提示
 
-- 檢查步驟放在 `test` job 裡 `Run tests` 之前
 - 用一個獨立的 `- name: Verify dependencies` step
 
 ### 預期結果
 
 - 如果 `go.sum` 跟本地 module cache 不一致，CI 會在 `Verify dependencies` 這一步失敗
-- 正常情況下這一步會秒過，只是多一道保險
 
 <details>
 <summary>點擊查看答案</summary>
@@ -63,12 +61,6 @@
           path: coverage.out
 ```
 
-**重點說明：**
-
-- `go mod verify` 會比對本地 module cache 與 `go.sum` 的 hash 值，確保沒有人篡改依賴套件
-- 放在 `Run tests` 前面，如果依賴完整性有問題就不用浪費時間跑測試
-- 為什麼不加 `go vet`？因為 `golangci-lint` 預設已經啟用 `govet` linter，重複跑是多餘的
-
 </details>
 
 ---
@@ -77,102 +69,84 @@
 
 ### 目標
 
-實際走一遍完整的 **PR 檢查流程**：建立分支、修改程式碼、撰寫測試、開 PR、觀察 CI 結果。
+實際走一遍完整的 **PR 檢查流程**：建立分支、做一個小改動、開 PR、觀察 CI 結果。重點不在程式碼有多複雜，而在感受「push → CI → review → merge」這條動線。
 
 ### 要求
 
-1. 從 `main` 建立一個新的分支 `feature/add-info-endpoint`
-2. 在範例專案中新增一個 `/info` endpoint，回傳應用程式的資訊
-3. 為新的 endpoint 撰寫對應的測試
-4. 開一個 Pull Request 到 `main`，並觀察 CI 檢查的結果
-
-> 這個練習 **不提供完整答案**，而是提供 step by step 的引導。目的是讓你走一遍真實的開發流程。
+1. 從 `main` 建立一個新的分支 `feature/update-greeting`
+2. 把 `/` endpoint 的歡迎訊息改成你想要的字串，並同步更新對應的 test
+3. 開一個 PR，觀察 CI 檢查跑起來、變綠之後合併
 
 ### Step by Step 引導
+
+#### 前置：Fork workshop repo
+
+學員對工作坊 repo 沒有寫入權限，所以要先 fork 一份到自己帳號下，後續所有 push、PR 都在你的 fork 內進行。
+
+1. 到 SRE Workshop repo 頁面，右上角按 **Fork**
+
+   ![GitHub Fork 按鈕位置](../assets/github-fork-button.png)
+
+2. 把 fork 到自己帳號下的 repo Clone 下來：
+
+   ```bash
+   git clone git@github.com:<你的-username>/sre-workshop.git
+   cd sre-workshop/CI-CD/examples/sample-app
+   ```
 
 #### Step 1：建立新分支
 
 ```bash
 git checkout main
 git pull origin main
-git checkout -b feature/add-info-endpoint
+git checkout -b feature/update-greeting
 ```
 
-#### Step 2：新增 `/info` endpoint
+#### Step 2：改歡迎訊息
 
-在 `handler.go` 中新增一個 handler 函式（維持與既有 handler 相同的命名風格與 method 路由風格）：
+打開 `handler.go`，把 `handleRoot` 裡的字串換成你想要的（例如加上你的名字）：
 
 ```go
-// handleInfo returns application metadata.
-func handleInfo(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{
-        "app":     "sample-app",
-        "version": version,
-    })
-}
+// before
+if _, err := w.Write([]byte("Hello, GitHub Actions!")); err != nil {
+
+// after
+if _, err := w.Write([]byte("Hello from <你的名字>!")); err != nil {
 ```
 
-然後在 `main.go` 中註冊這個 handler：
+#### Step 3：同步更新測試
+
+打開 `handler_test.go`，把 `TestHandleRoot` 裡的 `expected` 改成一樣的字串：
 
 ```go
-mux.HandleFunc("GET /info", handleInfo)
+expected := "Hello from <你的名字>!"
 ```
 
-#### Step 3：撰寫測試
-
-在 `handler_test.go` 中新增測試：
-
-```go
-func TestHandleInfo(t *testing.T) {
-    req := httptest.NewRequest(http.MethodGet, "/info", nil)
-    w := httptest.NewRecorder()
-    handleInfo(w, req)
-
-    if w.Code != http.StatusOK {
-        t.Errorf("expected status 200, got %d", w.Code)
-    }
-
-    var result map[string]string
-    if err := json.NewDecoder(w.Body).Decode(&result); err != nil {
-        t.Fatalf("failed to decode response: %v", err)
-    }
-
-    if result["app"] != "sample-app" {
-        t.Errorf("expected app to be 'sample-app', got '%s'", result["app"])
-    }
-}
-```
+> 故意先**不**改 test 也行 — push 上去 CI 會失敗，可以體驗 CI 擋住合併的感覺，再修正 test 後 push 一次就會變綠。
 
 #### Step 4：在本地驗證
 
 ```bash
-# Run tests locally (same flags as CI)
 go test -v -race ./...
-
-# Run go vet
-go vet ./...
-
-# Check formatting
-gofmt -l .
 ```
 
-確認所有檢查都通過後再繼續。
+確認測試通過後再繼續。
 
 #### Step 5：Commit 並 Push
 
 ```bash
-git add handler.go main.go handler_test.go
-git commit -m "feat: add /info endpoint"
-git push origin feature/add-info-endpoint
+git add handler.go handler_test.go
+git commit -m "chore: personalize greeting message"
+git push origin feature/update-greeting
 ```
 
-#### Step 6：開 Pull Request
+#### Step 6：開 Pull Request（在你的 fork 內）
 
-1. 到 GitHub repository 頁面
-2. 你應該會看到一個提示，讓你建立 PR
-3. 填寫 PR 標題和描述
-4. 點擊 **Create pull request**
+1. 到你 fork 的 GitHub 頁面
+2. 點擊 **Pull requests** → **New pull request**
+3. **確認 base 是你 fork 的 `main`**（GitHub 預設可能指向 upstream，要切回你自己的 fork）
+4. compare 選擇 `feature/add-info-endpoint`
+5. 填寫 PR 標題和描述，點擊 **Create pull request**
 
 #### Step 7：觀察 CI 結果
 
